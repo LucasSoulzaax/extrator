@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Limpeza de CSV - Remover Espaços</title>
+    <title>Corretor de CSV - Campos Incompatíveis</title>
     <style>
         * {
             margin: 0;
@@ -25,7 +25,7 @@
             background: rgba(255, 255, 255, 0.95);
             border-radius: 20px;
             padding: 40px;
-            max-width: 900px;
+            max-width: 1100px;
             width: 100%;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
         }
@@ -48,7 +48,7 @@
         .upload-area {
             border: 3px dashed #0f3460;
             border-radius: 16px;
-            padding: 50px 20px;
+            padding: 40px 20px;
             text-align: center;
             cursor: pointer;
             transition: all 0.3s ease;
@@ -68,13 +68,13 @@
         }
 
         .upload-area .icon {
-            font-size: 60px;
-            margin-bottom: 15px;
+            font-size: 50px;
+            margin-bottom: 10px;
         }
 
         .upload-area p {
             color: #555;
-            font-size: 16px;
+            font-size: 15px;
         }
 
         .upload-area .highlight {
@@ -100,6 +100,8 @@
             padding: 12px 20px;
             border-radius: 10px;
             margin-top: 20px;
+            flex-wrap: wrap;
+            gap: 10px;
         }
 
         .file-info.show {
@@ -128,12 +130,13 @@
 
         .options {
             display: flex;
-            gap: 30px;
-            margin: 25px 0;
+            gap: 20px;
+            margin: 20px 0;
             flex-wrap: wrap;
             background: #f8f9fc;
-            padding: 20px;
+            padding: 15px 20px;
             border-radius: 12px;
+            align-items: center;
         }
 
         .options label {
@@ -147,13 +150,34 @@
 
         .options input[type="radio"] {
             accent-color: #0f3460;
-            width: 18px;
-            height: 18px;
+            width: 17px;
+            height: 17px;
             cursor: pointer;
         }
 
+        .options .field-count {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-left: auto;
+        }
+
+        .options .field-count input {
+            width: 60px;
+            padding: 5px 8px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            text-align: center;
+        }
+
+        .options .field-count input:focus {
+            border-color: #0f3460;
+            outline: none;
+        }
+
         .preview-area {
-            margin-top: 25px;
+            margin-top: 20px;
             border: 1px solid #ddd;
             border-radius: 12px;
             overflow: hidden;
@@ -161,11 +185,13 @@
 
         .preview-header {
             background: #f0f2f5;
-            padding: 12px 20px;
+            padding: 10px 20px;
             display: flex;
             justify-content: space-between;
             align-items: center;
             border-bottom: 1px solid #ddd;
+            flex-wrap: wrap;
+            gap: 8px;
         }
 
         .preview-header span {
@@ -181,33 +207,34 @@
         }
 
         .preview-scroll {
-            max-height: 350px;
+            max-height: 400px;
             overflow: auto;
-            padding: 10px 0;
+            padding: 0;
         }
 
         .preview-scroll table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 13px;
+            font-size: 12px;
         }
 
         .preview-scroll th {
             background: #f8f9fc;
             color: #333;
             font-weight: 600;
-            padding: 10px 14px;
+            padding: 8px 10px;
             text-align: left;
             position: sticky;
             top: 0;
             border-bottom: 2px solid #ddd;
             white-space: nowrap;
+            z-index: 2;
         }
 
         .preview-scroll td {
-            padding: 8px 14px;
+            padding: 6px 10px;
             border-bottom: 1px solid #eee;
-            max-width: 200px;
+            max-width: 180px;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
@@ -217,32 +244,84 @@
             background: #f5f7fc;
         }
 
+        .preview-scroll .row-error {
+            background: #fff3e0 !important;
+        }
+
+        .preview-scroll .row-error td {
+            background: #fff3e0 !important;
+        }
+
+        .preview-scroll .row-error td:first-child::before {
+            content: "⚠️ ";
+        }
+
         .preview-scroll .cell-modified {
             background: #e8f5e9 !important;
         }
 
         .preview-scroll .cell-modified td {
-            background: #e8f5e9;
+            background: #e8f5e9 !important;
+        }
+
+        .preview-scroll .cell-added {
+            background: #e3f2fd !important;
+        }
+
+        .preview-scroll .cell-added td {
+            background: #e3f2fd !important;
+        }
+
+        .preview-scroll .cell-empty {
+            color: #999;
+            font-style: italic;
+        }
+
+        .stats {
+            display: flex;
+            gap: 25px;
+            margin-top: 15px;
+            padding: 12px 20px;
+            background: #f8f9fc;
+            border-radius: 10px;
+            flex-wrap: wrap;
+        }
+
+        .stats .item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            color: #555;
+        }
+
+        .stats .item strong {
+            color: #0f3460;
+            font-size: 16px;
+        }
+
+        .stats .item .warn {
+            color: #e65100;
         }
 
         .actions {
             display: flex;
-            gap: 15px;
-            margin-top: 25px;
+            gap: 12px;
+            margin-top: 20px;
             flex-wrap: wrap;
         }
 
         .btn {
-            padding: 12px 30px;
+            padding: 10px 24px;
             border: none;
-            border-radius: 10px;
-            font-size: 15px;
+            border-radius: 8px;
+            font-size: 14px;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
         }
 
         .btn-primary {
@@ -250,7 +329,7 @@
             color: white;
         }
 
-        .btn-primary:hover {
+        .btn-primary:hover:not(:disabled) {
             background: #1a4a7a;
             transform: translateY(-2px);
             box-shadow: 0 6px 20px rgba(15, 52, 96, 0.3);
@@ -267,7 +346,7 @@
             color: white;
         }
 
-        .btn-success:hover {
+        .btn-success:hover:not(:disabled) {
             background: #388e3c;
             transform: translateY(-2px);
             box-shadow: 0 6px 20px rgba(46, 125, 50, 0.3);
@@ -277,6 +356,21 @@
             opacity: 0.5;
             cursor: not-allowed;
             transform: none;
+        }
+
+        .btn-warning {
+            background: #e65100;
+            color: white;
+        }
+
+        .btn-warning:hover:not(:disabled) {
+            background: #bf360c;
+            transform: translateY(-2px);
+        }
+
+        .btn-warning:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
         }
 
         .btn-outline {
@@ -290,36 +384,13 @@
             color: white;
         }
 
-        .stats {
-            display: flex;
-            gap: 30px;
-            margin-top: 15px;
-            padding: 15px 20px;
-            background: #f8f9fc;
-            border-radius: 10px;
-            flex-wrap: wrap;
-        }
-
-        .stats .item {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 14px;
-            color: #555;
-        }
-
-        .stats .item strong {
-            color: #0f3460;
-            font-size: 18px;
-        }
-
         .toast {
             position: fixed;
             bottom: 30px;
             right: 30px;
             background: #333;
             color: white;
-            padding: 15px 25px;
+            padding: 14px 24px;
             border-radius: 10px;
             font-size: 14px;
             opacity: 0;
@@ -327,6 +398,7 @@
             transition: all 0.4s ease;
             pointer-events: none;
             box-shadow: 0 6px 24px rgba(0, 0, 0, 0.3);
+            max-width: 400px;
         }
 
         .toast.show {
@@ -342,24 +414,64 @@
             background: #c62828;
         }
 
+        .toast.warning {
+            background: #e65100;
+        }
+
         .badge {
             display: inline-block;
             background: #e94560;
             color: white;
-            font-size: 11px;
+            font-size: 10px;
             padding: 2px 10px;
             border-radius: 20px;
             margin-left: 6px;
         }
 
+        .badge.warn {
+            background: #e65100;
+        }
+
+        .badge.success {
+            background: #2e7d32;
+        }
+
+        .error-log {
+            margin-top: 10px;
+            background: #fff3e0;
+            border-left: 4px solid #e65100;
+            padding: 10px 15px;
+            border-radius: 6px;
+            max-height: 150px;
+            overflow: auto;
+            font-size: 12px;
+            color: #555;
+            display: none;
+        }
+
+        .error-log.show {
+            display: block;
+        }
+
+        .error-log .line {
+            padding: 2px 0;
+            border-bottom: 1px solid #ffccbc;
+            font-family: monospace;
+        }
+
         @media (max-width: 600px) {
             .container {
-                padding: 20px;
+                padding: 16px;
             }
 
             .options {
                 flex-direction: column;
-                gap: 10px;
+                gap: 8px;
+            }
+
+            .options .field-count {
+                margin-left: 0;
+                width: 100%;
             }
 
             .actions {
@@ -372,7 +484,7 @@
 
             .stats {
                 flex-direction: column;
-                gap: 8px;
+                gap: 4px;
             }
         }
     </style>
@@ -380,14 +492,13 @@
 <body>
 
     <div class="container">
-        <h1>🧹 Limpeza de CSV</h1>
-        <p class="subtitle">Remova espaços extras no início e fim de todas as células</p>
+        <h1>🔧 Corretor de CSV</h1>
+        <p class="subtitle">Corrige arquivos com número de campos incompatível (ex: "expected 14 fields but parsed X")</p>
 
-        <!-- Upload -->
         <div class="upload-area" id="uploadArea">
             <div class="icon">📂</div>
             <p>Arraste seu arquivo <span class="highlight">CSV</span> aqui ou clique para selecionar</p>
-            <p style="font-size: 13px; color: #999; margin-top: 8px;">Suporta arquivos .csv e .txt</p>
+            <p style="font-size: 13px; color: #999; margin-top: 6px;">Suporta .csv, .txt | Detecta automaticamente vírgula ou ponto-e-vírgula</p>
             <input type="file" id="fileInput" accept=".csv,.txt">
         </div>
 
@@ -397,25 +508,30 @@
             <button class="btn-remove" id="removeFile">✕</button>
         </div>
 
-        <!-- Opções -->
         <div class="options">
             <label>
                 <input type="radio" name="trimType" value="trim" checked>
-                Remover espaços no início e fim
-                <span class="badge">recomendado</span>
+                Remover espaços no início/fim
             </label>
             <label>
                 <input type="radio" name="trimType" value="all">
                 Remover TODOS os espaços
-                <span class="badge">agressivo</span>
             </label>
             <label>
                 <input type="radio" name="trimType" value="none">
                 Apenas visualizar
             </label>
+            <div class="field-count">
+                <label>Colunas esperadas:</label>
+                <input type="number" id="expectedColumns" value="14" min="1" max="50">
+            </div>
         </div>
 
-        <!-- Preview -->
+        <div class="error-log" id="errorLog">
+            <div style="font-weight:600;color:#e65100;margin-bottom:4px;">⚠️ Linhas com problemas:</div>
+            <div id="errorLogContent"></div>
+        </div>
+
         <div class="preview-area" id="previewArea" style="display: none;">
             <div class="preview-header">
                 <span>📊 Prévia do conteúdo</span>
@@ -429,29 +545,30 @@
             </div>
         </div>
 
-        <!-- Stats -->
         <div class="stats" id="statsArea" style="display: none;">
             <div class="item">📝 Total de células: <strong id="totalCells">0</strong></div>
-            <div class="item">✂️ Células modificadas: <strong id="modifiedCells">0</strong></div>
-            <div class="item">📊 Colunas: <strong id="totalColumns">0</strong></div>
+            <div class="item">✂️ Modificadas: <strong id="modifiedCells">0</strong></div>
+            <div class="item">➕ Adicionadas: <strong id="addedCells">0</strong></div>
+            <div class="item">⚠️ Linhas com erro: <strong id="errorRows" class="warn">0</strong></div>
             <div class="item">📋 Linhas: <strong id="totalRows">0</strong></div>
         </div>
 
-        <!-- Actions -->
         <div class="actions">
             <button class="btn btn-primary" id="btnProcess" disabled>
                 🔄 Processar Limpeza
             </button>
+            <button class="btn btn-warning" id="btnFixColumns" disabled>
+                🔧 Corrigir Colunas
+            </button>
             <button class="btn btn-success" id="btnDownload" disabled>
-                ⬇️ Baixar CSV Limpo
+                ⬇️ Baixar CSV Corrigido
             </button>
             <button class="btn btn-outline" id="btnClear">
-                🗑️ Limpar Tudo
+                🗑️ Limpar
             </button>
         </div>
     </div>
 
-    <!-- Toast -->
     <div class="toast" id="toast"></div>
 
     <script>
@@ -470,29 +587,34 @@
             const statsArea = document.getElementById('statsArea');
             const totalCells = document.getElementById('totalCells');
             const modifiedCells = document.getElementById('modifiedCells');
-            const totalColumns = document.getElementById('totalColumns');
+            const addedCells = document.getElementById('addedCells');
+            const errorRows = document.getElementById('errorRows');
             const totalRows = document.getElementById('totalRows');
             const btnProcess = document.getElementById('btnProcess');
+            const btnFixColumns = document.getElementById('btnFixColumns');
             const btnDownload = document.getElementById('btnDownload');
             const btnClear = document.getElementById('btnClear');
             const toast = document.getElementById('toast');
+            const errorLog = document.getElementById('errorLog');
+            const errorLogContent = document.getElementById('errorLogContent');
+            const expectedColumnsInput = document.getElementById('expectedColumns');
 
-            let currentData = null; // Array de arrays
-            let originalData = null; // Para comparar modificações
+            let currentData = null;
+            let originalData = null;
             let processedData = null;
             let headers = [];
             let currentFileName = '';
             let modificationCount = 0;
+            let addedCount = 0;
+            let errorRowsList = [];
+            let columnCount = 14;
 
-            // --- Funções auxiliares ---
             function showToast(message, type = 'success', duration = 3000) {
                 toast.textContent = message;
                 toast.className = 'toast ' + type;
                 setTimeout(() => toast.classList.add('show'), 10);
                 clearTimeout(toast._timeout);
-                toast._timeout = setTimeout(() => {
-                    toast.classList.remove('show');
-                }, duration);
+                toast._timeout = setTimeout(() => toast.classList.remove('show'), duration);
             }
 
             function formatFileSize(bytes) {
@@ -524,46 +646,79 @@
                 }
             }
 
-            // --- Processar CSV ---
+            // --- Parser CSV melhorado ---
             function parseCSV(text) {
-                // Detecta separador: vírgula ou ponto e vírgula
-                const lines = text.split(/\r?\n/).filter(line => line.trim() !== '');
+                const lines = [];
+                let currentLine = '';
+                let inQuotes = false;
+                let i = 0;
+
+                while (i < text.length) {
+                    const char = text[i];
+                    if (char === '"') {
+                        if (inQuotes && text[i + 1] === '"') {
+                            currentLine += '"';
+                            i += 2;
+                            continue;
+                        }
+                        inQuotes = !inQuotes;
+                        currentLine += char;
+                    } else if ((char === '\n' || char === '\r') && !inQuotes) {
+                        if (char === '\r' && text[i + 1] === '\n') {
+                            i++;
+                        }
+                        if (currentLine.trim() !== '') {
+                            lines.push(currentLine);
+                        }
+                        currentLine = '';
+                    } else {
+                        currentLine += char;
+                    }
+                    i++;
+                }
+                if (currentLine.trim() !== '') {
+                    lines.push(currentLine);
+                }
+
                 if (lines.length === 0) return [];
 
                 // Detecta separador
                 let separator = ',';
+                let semicolonCount = 0;
+                let commaCount = 0;
+                let inQuotesDetect = false;
                 const firstLine = lines[0];
-                if (firstLine.includes(';') && !firstLine.includes(',')) {
-                    separator = ';';
-                } else if (firstLine.includes(';') && firstLine.includes(',')) {
-                    // Conta qual aparece mais
-                    const semicolonCount = (firstLine.match(/;/g) || []).length;
-                    const commaCount = (firstLine.match(/,/g) || []).length;
-                    separator = semicolonCount >= commaCount ? ';' : ',';
+                for (let j = 0; j < firstLine.length; j++) {
+                    const c = firstLine[j];
+                    if (c === '"') inQuotesDetect = !inQuotesDetect;
+                    if (!inQuotesDetect) {
+                        if (c === ';') semicolonCount++;
+                        if (c === ',') commaCount++;
+                    }
                 }
+                if (semicolonCount > commaCount) separator = ';';
 
-                // Parse com suporte a aspas
                 function parseCSVLine(line, sep) {
                     const result = [];
                     let current = '';
-                    let inQuotes = false;
-                    for (let i = 0; i < line.length; i++) {
-                        const char = line[i];
+                    let inQuotesParse = false;
+                    for (let j = 0; j < line.length; j++) {
+                        const char = line[j];
                         if (char === '"') {
-                            if (inQuotes && line[i + 1] === '"') {
+                            if (inQuotesParse && line[j + 1] === '"') {
                                 current += '"';
-                                i++;
+                                j++;
                             } else {
-                                inQuotes = !inQuotes;
+                                inQuotesParse = !inQuotesParse;
                             }
-                        } else if (char === sep && !inQuotes) {
-                            result.push(current.trim());
+                        } else if (char === sep && !inQuotesParse) {
+                            result.push(current);
                             current = '';
                         } else {
                             current += char;
                         }
                     }
-                    result.push(current.trim());
+                    result.push(current);
                     return result;
                 }
 
@@ -583,45 +738,98 @@
                 return lines.join('\n');
             }
 
+            // --- Corrigir colunas ---
+            function fixColumns(data, targetColumns) {
+                const fixedData = [];
+                const errors = [];
+                let added = 0;
+
+                data.forEach((row, idx) => {
+                    const rowCopy = [...row];
+                    // Remove propriedades especiais
+                    const cleanRow = rowCopy.filter(cell => cell !== undefined);
+                    const currentLen = cleanRow.length;
+
+                    if (currentLen < targetColumns) {
+                        // Adiciona células vazias
+                        const missing = targetColumns - currentLen;
+                        for (let i = 0; i < missing; i++) {
+                            cleanRow.push('');
+                            added++;
+                        }
+                        errors.push(idx + 1);
+                    } else if (currentLen > targetColumns) {
+                        // Remove colunas extras (mantém as primeiras)
+                        cleanRow.splice(targetColumns);
+                        errors.push(idx + 1);
+                    }
+
+                    fixedData.push(cleanRow);
+                });
+
+                addedCount = added;
+                errorRowsList = errors;
+                return fixedData;
+            }
+
             // --- Renderizar preview ---
-            function renderPreview(data, headers, modCount = 0) {
+            function renderPreview(data, headers, modCount = 0, addCount = 0, errors = []) {
                 if (!data || data.length === 0) {
                     previewArea.style.display = 'none';
                     statsArea.style.display = 'none';
+                    errorLog.classList.remove('show');
                     return;
                 }
 
                 previewArea.style.display = 'block';
                 statsArea.style.display = 'flex';
 
-                const displayHeaders = headers || data[0] || [];
-                const displayData = headers ? data : data.slice(1);
+                const displayHeaders = headers || [];
+                const displayData = data;
 
                 // Cabeçalho
                 tableHead.innerHTML = '';
                 const headRow = document.createElement('tr');
-                displayHeaders.forEach(h => {
+                const numCols = Math.max(displayHeaders.length, displayData.reduce((max, row) => Math.max(max, row.length), 0));
+                for (let j = 0; j < numCols; j++) {
                     const th = document.createElement('th');
-                    th.textContent = h || 'Coluna ' + (headRow.children.length + 1);
+                    th.textContent = displayHeaders[j] || `Coluna ${j + 1}`;
                     headRow.appendChild(th);
-                });
+                }
                 tableHead.appendChild(headRow);
 
-                // Corpo - mostra apenas primeiras 100 linhas
+                // Corpo
                 tableBody.innerHTML = '';
                 const maxRows = Math.min(displayData.length, 100);
+                const errorSet = new Set(errors);
+
                 for (let i = 0; i < maxRows; i++) {
                     const tr = document.createElement('tr');
                     const row = displayData[i] || [];
-                    const hasMod = row._modified || false;
-                    if (hasMod) tr.className = 'cell-modified';
-                    for (let j = 0; j < displayHeaders.length; j++) {
+                    const isError = errorSet.has(i + 1);
+                    if (isError) tr.className = 'row-error';
+
+                    for (let j = 0; j < numCols; j++) {
                         const td = document.createElement('td');
-                        const val = row[j] !== undefined ? row[j] : '';
-                        td.textContent = typeof val === 'string' ? val : String(val);
+                        let val = row[j] !== undefined ? row[j] : '';
+                        val = typeof val === 'string' ? val : String(val);
+
+                        if (val === '' && j >= row.length) {
+                            td.textContent = '(vazio)';
+                            td.className = 'cell-empty';
+                        } else {
+                            td.textContent = val;
+                            // Marca células adicionadas (últimas colunas preenchidas)
+                            if (j >= row.length - (addCount > 0 ? 1 : 0) && val !== '') {
+                                td.style.background = '#e3f2fd';
+                            }
+                        }
+
+                        // Marca modificações
                         if (row._modified && row._modified === true) {
                             td.style.background = '#e8f5e9';
                         }
+
                         tr.appendChild(td);
                     }
                     tableBody.appendChild(tr);
@@ -630,7 +838,7 @@
                 if (displayData.length > 100) {
                     const tr = document.createElement('tr');
                     const td = document.createElement('td');
-                    td.colSpan = displayHeaders.length || 1;
+                    td.colSpan = numCols || 1;
                     td.textContent = `... e mais ${displayData.length - 100} linhas`;
                     td.style.textAlign = 'center';
                     td.style.color = '#999';
@@ -642,10 +850,22 @@
                 rowCount.textContent = displayData.length + ' linhas' + (displayData.length > 100 ? ' (mostrando 100)' : '');
 
                 // Stats
-                totalCells.textContent = displayData.length * (displayHeaders.length || 0);
+                const totalCellsVal = displayData.length * numCols;
+                totalCells.textContent = totalCellsVal;
                 modifiedCells.textContent = modCount;
-                totalColumns.textContent = displayHeaders.length || 0;
+                addedCells.textContent = addCount;
+                errorRows.textContent = errors.length;
                 totalRows.textContent = displayData.length;
+
+                // Error log
+                if (errors.length > 0) {
+                    errorLog.classList.add('show');
+                    errorLogContent.innerHTML = errors.map(idx =>
+                        `<div class="line">Linha ${idx}: número de campos incompatível (ajustado)</div>`
+                    ).join('');
+                } else {
+                    errorLog.classList.remove('show');
+                }
             }
 
             // --- Processar limpeza ---
@@ -657,14 +877,14 @@
 
                 const trimType = document.querySelector('input[name="trimType"]:checked').value;
                 const trimFn = getTrimFunction(trimType);
+                const targetCols = parseInt(expectedColumnsInput.value) || 14;
 
-                const dataToProcess = currentData;
-                const hasHeaders = headers.length > 0;
-                const dataRows = hasHeaders ? dataToProcess.slice(1) : dataToProcess;
-                const headerRow = hasHeaders ? dataToProcess[0] : [];
+                // Primeiro corrige colunas
+                const fixedData = fixColumns(currentData, targetCols);
 
+                // Depois aplica trim
                 let modCount = 0;
-                const processedRows = dataRows.map((row, rowIdx) => {
+                const processedRows = fixedData.map((row, rowIdx) => {
                     const newRow = row.map((cell, colIdx) => {
                         const original = cell;
                         const trimmed = trimFn(cell);
@@ -673,29 +893,52 @@
                         }
                         return trimmed;
                     });
-                    // Marca se houve modificação para destacar no preview
+                    // Marca modificações
                     const hasMod = newRow.some((val, idx) => val !== row[idx]);
                     newRow._modified = hasMod;
                     return newRow;
                 });
 
                 modificationCount = modCount;
+                processedData = processedRows;
 
-                // Monta dados finais
-                const finalData = hasHeaders ? [headerRow, ...processedRows] : processedRows;
-                processedData = finalData;
-
-                // Renderiza preview com modificações destacadas
-                const previewData = hasHeaders ? [headerRow, ...processedRows] : processedRows;
-                renderPreview(previewData, headers, modCount);
+                renderPreview(processedRows, headers, modCount, addedCount, errorRowsList);
 
                 btnDownload.disabled = false;
                 btnProcess.disabled = true;
+                btnFixColumns.disabled = true;
 
-                if (modCount === 0) {
-                    showToast('✅ Nenhuma célula foi modificada!', 'success');
+                if (modCount === 0 && errorRowsList.length === 0) {
+                    showToast('✅ Nenhuma modificação necessária!', 'success');
                 } else {
-                    showToast(`✅ ${modCount} célula(s) modificada(s)!`, 'success');
+                    let msg = `✅ ${modCount} célula(s) modificadas`;
+                    if (errorRowsList.length > 0) msg += `, ${errorRowsList.length} linha(s) corrigidas`;
+                    if (addedCount > 0) msg += `, ${addedCount} célula(s) adicionadas`;
+                    showToast(msg, 'success');
+                }
+            }
+
+            // --- Fix columns apenas ---
+            function fixColumnsOnly() {
+                if (!currentData || currentData.length === 0) {
+                    showToast('Nenhum dado para processar', 'error');
+                    return;
+                }
+
+                const targetCols = parseInt(expectedColumnsInput.value) || 14;
+                const fixedData = fixColumns(currentData, targetCols);
+                processedData = fixedData;
+                modificationCount = 0;
+
+                renderPreview(fixedData, headers, 0, addedCount, errorRowsList);
+                btnDownload.disabled = false;
+                btnProcess.disabled = false;
+                btnFixColumns.disabled = true;
+
+                if (errorRowsList.length > 0) {
+                    showToast(`✅ ${errorRowsList.length} linha(s) corrigidas, ${addedCount} célula(s) adicionadas`, 'success');
+                } else {
+                    showToast('✅ Nenhuma correção necessária!', 'success');
                 }
             }
 
@@ -704,7 +947,7 @@
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     try {
-                        const text = e.target.result;
+                        const text = e.target.value || e.target.result;
                         const parsed = parseCSV(text);
 
                         if (parsed.length === 0) {
@@ -712,7 +955,7 @@
                             return;
                         }
 
-                        // Define headers
+                        // Detecta se a primeira linha são headers ou dados
                         headers = parsed[0] || [];
                         currentData = parsed;
                         originalData = JSON.parse(JSON.stringify(parsed));
@@ -723,16 +966,25 @@
                         fileInfo.classList.add('show');
                         currentFileName = file.name;
 
-                        // Renderiza preview
-                        renderPreview(parsed, headers, 0);
+                        // Atualiza número esperado de colunas
+                        const maxCols = parsed.reduce((max, row) => Math.max(max, row.length), 0);
+                        expectedColumnsInput.value = maxCols;
 
-                        btnProcess.disabled = false;
-                        btnDownload.disabled = true;
+                        // Reseta estados
+                        errorRowsList = [];
+                        addedCount = 0;
+                        modificationCount = 0;
                         processedData = null;
+                        btnDownload.disabled = true;
+                        btnProcess.disabled = false;
+                        btnFixColumns.disabled = false;
 
-                        showToast(`📄 Arquivo "${file.name}" carregado com sucesso!`, 'success');
+                        // Renderiza preview
+                        renderPreview(parsed, headers, 0, 0, []);
+
+                        showToast(`📄 "${file.name}" carregado com sucesso!`, 'success');
                     } catch (err) {
-                        showToast('Erro ao processar o arquivo: ' + err.message, 'error');
+                        showToast('Erro ao processar: ' + err.message, 'error');
                         console.error(err);
                     }
                 };
@@ -744,14 +996,12 @@
 
             // --- Event listeners ---
 
-            // Upload por clique
             fileInput.addEventListener('change', (e) => {
                 if (e.target.files.length > 0) {
                     loadFile(e.target.files[0]);
                 }
             });
 
-            // Upload por arrastar
             uploadArea.addEventListener('dragover', (e) => {
                 e.preventDefault();
                 uploadArea.classList.add('dragover');
@@ -769,41 +1019,43 @@
                 }
             });
 
-            // Remover arquivo
             removeFile.addEventListener('click', () => {
                 fileInput.value = '';
                 fileInfo.classList.remove('show');
                 previewArea.style.display = 'none';
                 statsArea.style.display = 'none';
+                errorLog.classList.remove('show');
                 currentData = null;
                 processedData = null;
                 headers = [];
                 btnProcess.disabled = true;
+                btnFixColumns.disabled = true;
                 btnDownload.disabled = true;
                 showToast('Arquivo removido', 'success');
             });
 
-            // Processar
             btnProcess.addEventListener('click', processCleanup);
+            btnFixColumns.addEventListener('click', fixColumnsOnly);
 
-            // Download
             btnDownload.addEventListener('click', () => {
                 if (!processedData || processedData.length === 0) {
                     showToast('Nenhum dado processado para baixar', 'error');
                     return;
                 }
 
-                const csvContent = arrayToCSV(
-                    processedData.slice(1), // remove headers internos
-                    headers
-                );
+                const dataToExport = processedData.map(row => {
+                    // Remove propriedades internas
+                    return row.filter(cell => !(cell === '_modified' || typeof cell === 'object' && cell._modified !== undefined));
+                });
+
+                const csvContent = arrayToCSV(dataToExport, headers);
 
                 const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
                 const link = document.createElement('a');
                 const url = URL.createObjectURL(blob);
                 link.setAttribute('href', url);
                 const baseName = currentFileName.replace(/\.[^.]+$/, '') || 'arquivo';
-                link.setAttribute('download', `${baseName}_limpo.csv`);
+                link.setAttribute('download', `${baseName}_corrigido.csv`);
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
@@ -812,36 +1064,44 @@
                 showToast('✅ Arquivo baixado com sucesso!', 'success');
             });
 
-            // Limpar tudo
             btnClear.addEventListener('click', () => {
                 fileInput.value = '';
                 fileInfo.classList.remove('show');
                 previewArea.style.display = 'none';
                 statsArea.style.display = 'none';
+                errorLog.classList.remove('show');
                 currentData = null;
                 processedData = null;
                 headers = [];
                 btnProcess.disabled = true;
+                btnFixColumns.disabled = true;
                 btnDownload.disabled = true;
                 showToast('🧹 Tudo limpo!', 'success');
             });
 
-            // Mudança de opção de trim
             document.querySelectorAll('input[name="trimType"]').forEach(radio => {
                 radio.addEventListener('change', () => {
                     if (currentData) {
-                        // Se já tiver dados, re-processa automaticamente
                         processCleanup();
                     }
                 });
             });
 
-            // --- Inicialização ---
-            // Exemplo de drag global
+            expectedColumnsInput.addEventListener('change', () => {
+                if (currentData) {
+                    const val = parseInt(expectedColumnsInput.value) || 14;
+                    if (val > 0) {
+                        // Re-processa com novo número de colunas
+                        fixColumnsOnly();
+                    }
+                }
+            });
+
+            // Previne drag global
             document.addEventListener('dragover', (e) => e.preventDefault());
             document.addEventListener('drop', (e) => e.preventDefault());
 
-            showToast('👆 Carregue um arquivo CSV para começar', 'success', 2500);
+            showToast('👆 Carregue seu arquivo CSV com problemas', 'success', 3000);
         });
     </script>
 
