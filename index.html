@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Corretor de CSV - Campos Incompatíveis</title>
+    <title>Corretor de CSV - Apenas Estrutura</title>
     <style>
         * {
             margin: 0;
@@ -33,7 +33,7 @@
         h1 {
             color: #1a1a2e;
             font-size: 28px;
-            margin-bottom: 8px;
+            margin-bottom: 4px;
             display: flex;
             align-items: center;
             gap: 10px;
@@ -41,8 +41,23 @@
 
         .subtitle {
             color: #666;
-            margin-bottom: 30px;
+            margin-bottom: 25px;
             font-size: 14px;
+        }
+
+        .alert-box {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 12px 16px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            color: #856404;
+        }
+
+        .alert-box strong {
+            display: block;
+            margin-bottom: 4px;
         }
 
         .upload-area {
@@ -111,6 +126,7 @@
         .file-info .name {
             font-weight: 600;
             color: #0f3460;
+            word-break: break-all;
         }
 
         .file-info .size {
@@ -207,7 +223,7 @@
         }
 
         .preview-scroll {
-            max-height: 400px;
+            max-height: 450px;
             overflow: auto;
             padding: 0;
         }
@@ -234,7 +250,7 @@
         .preview-scroll td {
             padding: 6px 10px;
             border-bottom: 1px solid #eee;
-            max-width: 180px;
+            max-width: 200px;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
@@ -244,24 +260,12 @@
             background: #f5f7fc;
         }
 
-        .preview-scroll .row-error {
-            background: #fff3e0 !important;
+        .preview-scroll .row-fixed {
+            background: #fff8e1 !important;
         }
 
-        .preview-scroll .row-error td {
-            background: #fff3e0 !important;
-        }
-
-        .preview-scroll .row-error td:first-child::before {
-            content: "⚠️ ";
-        }
-
-        .preview-scroll .cell-modified {
-            background: #e8f5e9 !important;
-        }
-
-        .preview-scroll .cell-modified td {
-            background: #e8f5e9 !important;
+        .preview-scroll .row-fixed td {
+            background: #fff8e1 !important;
         }
 
         .preview-scroll .cell-added {
@@ -272,9 +276,21 @@
             background: #e3f2fd !important;
         }
 
+        .preview-scroll .cell-removed {
+            background: #ffebee !important;
+            text-decoration: line-through;
+            color: #c62828;
+        }
+
         .preview-scroll .cell-empty {
-            color: #999;
+            color: #bbb;
             font-style: italic;
+        }
+
+        .preview-scroll .cell-empty::after {
+            content: " (vazio)";
+            font-size: 10px;
+            color: #ccc;
         }
 
         .stats {
@@ -302,6 +318,10 @@
 
         .stats .item .warn {
             color: #e65100;
+        }
+
+        .stats .item .success {
+            color: #2e7d32;
         }
 
         .actions {
@@ -398,7 +418,7 @@
             transition: all 0.4s ease;
             pointer-events: none;
             box-shadow: 0 6px 24px rgba(0, 0, 0, 0.3);
-            max-width: 400px;
+            max-width: 450px;
         }
 
         .toast.show {
@@ -459,6 +479,14 @@
             font-family: monospace;
         }
 
+        .error-log .line-fixed {
+            color: #2e7d32;
+        }
+
+        .error-log .line-warn {
+            color: #e65100;
+        }
+
         @media (max-width: 600px) {
             .container {
                 padding: 16px;
@@ -493,7 +521,13 @@
 
     <div class="container">
         <h1>🔧 Corretor de CSV</h1>
-        <p class="subtitle">Corrige arquivos com número de campos incompatível (ex: "expected 14 fields but parsed X")</p>
+        <p class="subtitle">Apenas ajusta a estrutura (número de colunas) — <strong>sem inventar dados</strong></p>
+
+        <div class="alert-box">
+            <strong>⚠️ Importante:</strong>
+            Esta ferramenta apenas <strong>ajusta o número de colunas</strong> para o valor esperado.
+            Células faltantes ficam <strong>vazias</strong> — nenhum dado é inventado!
+        </div>
 
         <div class="upload-area" id="uploadArea">
             <div class="icon">📂</div>
@@ -514,12 +548,8 @@
                 Remover espaços no início/fim
             </label>
             <label>
-                <input type="radio" name="trimType" value="all">
-                Remover TODOS os espaços
-            </label>
-            <label>
                 <input type="radio" name="trimType" value="none">
-                Apenas visualizar
+                Manter espaços originais
             </label>
             <div class="field-count">
                 <label>Colunas esperadas:</label>
@@ -528,7 +558,7 @@
         </div>
 
         <div class="error-log" id="errorLog">
-            <div style="font-weight:600;color:#e65100;margin-bottom:4px;">⚠️ Linhas com problemas:</div>
+            <div style="font-weight:600;color:#e65100;margin-bottom:4px;">📋 Linhas ajustadas:</div>
             <div id="errorLogContent"></div>
         </div>
 
@@ -547,18 +577,15 @@
 
         <div class="stats" id="statsArea" style="display: none;">
             <div class="item">📝 Total de células: <strong id="totalCells">0</strong></div>
-            <div class="item">✂️ Modificadas: <strong id="modifiedCells">0</strong></div>
-            <div class="item">➕ Adicionadas: <strong id="addedCells">0</strong></div>
-            <div class="item">⚠️ Linhas com erro: <strong id="errorRows" class="warn">0</strong></div>
-            <div class="item">📋 Linhas: <strong id="totalRows">0</strong></div>
+            <div class="item">➕ Células adicionadas (vazias): <strong id="addedCells" class="warn">0</strong></div>
+            <div class="item">➖ Células removidas (excedentes): <strong id="removedCells" class="warn">0</strong></div>
+            <div class="item">📋 Linhas ajustadas: <strong id="fixedRows" class="warn">0</strong></div>
+            <div class="item">📊 Colunas: <strong id="totalColumns">0</strong></div>
         </div>
 
         <div class="actions">
-            <button class="btn btn-primary" id="btnProcess" disabled>
-                🔄 Processar Limpeza
-            </button>
             <button class="btn btn-warning" id="btnFixColumns" disabled>
-                🔧 Corrigir Colunas
+                🔧 Corrigir Estrutura
             </button>
             <button class="btn btn-success" id="btnDownload" disabled>
                 ⬇️ Baixar CSV Corrigido
@@ -573,7 +600,6 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // Elementos
             const fileInput = document.getElementById('fileInput');
             const uploadArea = document.getElementById('uploadArea');
             const fileInfo = document.getElementById('fileInfo');
@@ -586,11 +612,10 @@
             const rowCount = document.getElementById('rowCount');
             const statsArea = document.getElementById('statsArea');
             const totalCells = document.getElementById('totalCells');
-            const modifiedCells = document.getElementById('modifiedCells');
             const addedCells = document.getElementById('addedCells');
-            const errorRows = document.getElementById('errorRows');
-            const totalRows = document.getElementById('totalRows');
-            const btnProcess = document.getElementById('btnProcess');
+            const removedCells = document.getElementById('removedCells');
+            const fixedRows = document.getElementById('fixedRows');
+            const totalColumns = document.getElementById('totalColumns');
             const btnFixColumns = document.getElementById('btnFixColumns');
             const btnDownload = document.getElementById('btnDownload');
             const btnClear = document.getElementById('btnClear');
@@ -600,14 +625,13 @@
             const expectedColumnsInput = document.getElementById('expectedColumns');
 
             let currentData = null;
-            let originalData = null;
             let processedData = null;
             let headers = [];
             let currentFileName = '';
-            let modificationCount = 0;
             let addedCount = 0;
-            let errorRowsList = [];
-            let columnCount = 14;
+            let removedCount = 0;
+            let fixedRowsList = [];
+            let targetCols = 14;
 
             function showToast(message, type = 'success', duration = 3000) {
                 toast.textContent = message;
@@ -636,17 +660,12 @@
                         if (typeof val !== 'string') return val;
                         return val.trim();
                     };
-                } else if (type === 'all') {
-                    return (val) => {
-                        if (typeof val !== 'string') return val;
-                        return val.replace(/\s/g, '');
-                    };
                 } else {
                     return (val) => val;
                 }
             }
 
-            // --- Parser CSV melhorado ---
+            // --- Parser CSV robusto ---
             function parseCSV(text) {
                 const lines = [];
                 let currentLine = '';
@@ -726,54 +745,71 @@
                 return parsed;
             }
 
-            function arrayToCSV(data, headers) {
+            function arrayToCSV(data) {
                 const lines = [];
-                if (headers && headers.length > 0) {
-                    lines.push(headers.map(h => `"${String(h).replace(/"/g, '""')}"`).join(','));
-                }
                 data.forEach(row => {
-                    const rowData = row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',');
+                    const rowData = row.map(cell => {
+                        const str = String(cell);
+                        if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+                            return `"${str.replace(/"/g, '""')}"`;
+                        }
+                        return str;
+                    }).join(',');
                     lines.push(rowData);
                 });
                 return lines.join('\n');
             }
 
-            // --- Corrigir colunas ---
-            function fixColumns(data, targetColumns) {
+            // --- Corrigir estrutura SEM inventar dados ---
+            function fixStructure(data, targetColumns) {
                 const fixedData = [];
-                const errors = [];
+                const fixes = [];
                 let added = 0;
+                let removed = 0;
 
                 data.forEach((row, idx) => {
-                    const rowCopy = [...row];
-                    // Remove propriedades especiais
-                    const cleanRow = rowCopy.filter(cell => cell !== undefined);
+                    // Remove qualquer propriedade especial
+                    const cleanRow = row.filter(cell => 
+                        cell !== undefined && 
+                        cell !== null && 
+                        typeof cell !== 'object'
+                    );
+                    
                     const currentLen = cleanRow.length;
+                    let newRow = [...cleanRow];
 
                     if (currentLen < targetColumns) {
-                        // Adiciona células vazias
+                        // Adiciona células VAZIAS (sem inventar dados)
                         const missing = targetColumns - currentLen;
                         for (let i = 0; i < missing; i++) {
-                            cleanRow.push('');
+                            newRow.push('');
                             added++;
                         }
-                        errors.push(idx + 1);
+                        fixes.push({ row: idx + 1, action: 'added', count: missing });
                     } else if (currentLen > targetColumns) {
-                        // Remove colunas extras (mantém as primeiras)
-                        cleanRow.splice(targetColumns);
-                        errors.push(idx + 1);
+                        // Remove colunas extras (mantém apenas as primeiras)
+                        const excess = currentLen - targetColumns;
+                        newRow = newRow.slice(0, targetColumns);
+                        removed += excess;
+                        fixes.push({ row: idx + 1, action: 'removed', count: excess });
                     }
 
-                    fixedData.push(cleanRow);
+                    // Marca a linha para visualização
+                    if (newRow.length !== currentLen) {
+                        newRow._fixed = true;
+                    }
+                    fixedData.push(newRow);
                 });
 
                 addedCount = added;
-                errorRowsList = errors;
+                removedCount = removed;
+                fixedRowsList = fixes;
+
                 return fixedData;
             }
 
             // --- Renderizar preview ---
-            function renderPreview(data, headers, modCount = 0, addCount = 0, errors = []) {
+            function renderPreview(data, headers, addCount = 0, remCount = 0, fixes = []) {
                 if (!data || data.length === 0) {
                     previewArea.style.display = 'none';
                     statsArea.style.display = 'none';
@@ -784,16 +820,18 @@
                 previewArea.style.display = 'block';
                 statsArea.style.display = 'flex';
 
-                const displayHeaders = headers || [];
                 const displayData = data;
+                const numCols = Math.max(
+                    data.reduce((max, row) => Math.max(max, row.length), 0),
+                    headers.length || 1
+                );
 
                 // Cabeçalho
                 tableHead.innerHTML = '';
                 const headRow = document.createElement('tr');
-                const numCols = Math.max(displayHeaders.length, displayData.reduce((max, row) => Math.max(max, row.length), 0));
                 for (let j = 0; j < numCols; j++) {
                     const th = document.createElement('th');
-                    th.textContent = displayHeaders[j] || `Coluna ${j + 1}`;
+                    th.textContent = headers[j] || `Coluna ${j + 1}`;
                     headRow.appendChild(th);
                 }
                 tableHead.appendChild(headRow);
@@ -801,33 +839,34 @@
                 // Corpo
                 tableBody.innerHTML = '';
                 const maxRows = Math.min(displayData.length, 100);
-                const errorSet = new Set(errors);
+                const fixedRowSet = new Set(fixes.map(f => f.row));
 
                 for (let i = 0; i < maxRows; i++) {
                     const tr = document.createElement('tr');
                     const row = displayData[i] || [];
-                    const isError = errorSet.has(i + 1);
-                    if (isError) tr.className = 'row-error';
+                    const isFixed = fixedRowSet.has(i + 1);
+                    if (isFixed) tr.className = 'row-fixed';
 
                     for (let j = 0; j < numCols; j++) {
                         const td = document.createElement('td');
                         let val = row[j] !== undefined ? row[j] : '';
                         val = typeof val === 'string' ? val : String(val);
 
+                        // Verifica se é uma célula adicionada (vazia)
+                        const isAdded = j >= row.length - (addCount > 0 ? 1 : 0) && val === '' && isFixed;
+                        const isRemoved = j >= numCols && row[j] !== undefined;
+
                         if (val === '' && j >= row.length) {
                             td.textContent = '(vazio)';
                             td.className = 'cell-empty';
+                            if (isAdded) td.style.background = '#e3f2fd';
                         } else {
                             td.textContent = val;
-                            // Marca células adicionadas (últimas colunas preenchidas)
-                            if (j >= row.length - (addCount > 0 ? 1 : 0) && val !== '') {
-                                td.style.background = '#e3f2fd';
-                            }
+                            if (isAdded) td.style.background = '#e3f2fd';
                         }
 
-                        // Marca modificações
-                        if (row._modified && row._modified === true) {
-                            td.style.background = '#e8f5e9';
+                        if (isRemoved) {
+                            td.className = 'cell-removed';
                         }
 
                         tr.appendChild(td);
@@ -852,93 +891,64 @@
                 // Stats
                 const totalCellsVal = displayData.length * numCols;
                 totalCells.textContent = totalCellsVal;
-                modifiedCells.textContent = modCount;
                 addedCells.textContent = addCount;
-                errorRows.textContent = errors.length;
-                totalRows.textContent = displayData.length;
+                removedCells.textContent = remCount;
+                fixedRows.textContent = fixes.length;
+                totalColumns.textContent = numCols;
 
                 // Error log
-                if (errors.length > 0) {
+                if (fixes.length > 0) {
                     errorLog.classList.add('show');
-                    errorLogContent.innerHTML = errors.map(idx =>
-                        `<div class="line">Linha ${idx}: número de campos incompatível (ajustado)</div>`
-                    ).join('');
+                    errorLogContent.innerHTML = fixes.map(f => {
+                        const action = f.action === 'added' ? 
+                            `➕ adicionadas ${f.count} célula(s) vazia(s)` : 
+                            `➖ removidas ${f.count} célula(s) excedente(s)`;
+                        return `<div class="line line-fixed">Linha ${f.row}: ${action}</div>`;
+                    }).join('');
                 } else {
                     errorLog.classList.remove('show');
                 }
             }
 
-            // --- Processar limpeza ---
-            function processCleanup() {
+            // --- Corrigir estrutura ---
+            function fixStructureOnly() {
                 if (!currentData || currentData.length === 0) {
                     showToast('Nenhum dado para processar', 'error');
                     return;
                 }
 
+                const targetCols = parseInt(expectedColumnsInput.value) || 14;
                 const trimType = document.querySelector('input[name="trimType"]:checked').value;
                 const trimFn = getTrimFunction(trimType);
-                const targetCols = parseInt(expectedColumnsInput.value) || 14;
 
-                // Primeiro corrige colunas
-                const fixedData = fixColumns(currentData, targetCols);
+                // Primeiro aplica trim se necessário
+                let dataToFix = currentData;
+                if (trimType !== 'none') {
+                    dataToFix = currentData.map(row => row.map(cell => trimFn(cell)));
+                }
 
-                // Depois aplica trim
-                let modCount = 0;
-                const processedRows = fixedData.map((row, rowIdx) => {
-                    const newRow = row.map((cell, colIdx) => {
-                        const original = cell;
-                        const trimmed = trimFn(cell);
-                        if (original !== trimmed && typeof original === 'string') {
-                            modCount++;
-                        }
-                        return trimmed;
-                    });
-                    // Marca modificações
-                    const hasMod = newRow.some((val, idx) => val !== row[idx]);
-                    newRow._modified = hasMod;
+                // Corrige estrutura
+                const fixedData = fixStructure(dataToFix, targetCols);
+
+                // Remove flags internas para exportação
+                processedData = fixedData.map(row => {
+                    const newRow = [...row];
+                    // Remove propriedades internas
+                    delete newRow._fixed;
                     return newRow;
                 });
 
-                modificationCount = modCount;
-                processedData = processedRows;
-
-                renderPreview(processedRows, headers, modCount, addedCount, errorRowsList);
-
+                renderPreview(fixedData, headers, addedCount, removedCount, fixedRowsList);
                 btnDownload.disabled = false;
-                btnProcess.disabled = true;
                 btnFixColumns.disabled = true;
 
-                if (modCount === 0 && errorRowsList.length === 0) {
-                    showToast('✅ Nenhuma modificação necessária!', 'success');
-                } else {
-                    let msg = `✅ ${modCount} célula(s) modificadas`;
-                    if (errorRowsList.length > 0) msg += `, ${errorRowsList.length} linha(s) corrigidas`;
-                    if (addedCount > 0) msg += `, ${addedCount} célula(s) adicionadas`;
+                if (fixedRowsList.length > 0) {
+                    let msg = `✅ ${fixedRowsList.length} linha(s) ajustadas`;
+                    if (addedCount > 0) msg += `, ${addedCount} célula(s) vazias adicionadas`;
+                    if (removedCount > 0) msg += `, ${removedCount} célula(s) removidas`;
                     showToast(msg, 'success');
-                }
-            }
-
-            // --- Fix columns apenas ---
-            function fixColumnsOnly() {
-                if (!currentData || currentData.length === 0) {
-                    showToast('Nenhum dado para processar', 'error');
-                    return;
-                }
-
-                const targetCols = parseInt(expectedColumnsInput.value) || 14;
-                const fixedData = fixColumns(currentData, targetCols);
-                processedData = fixedData;
-                modificationCount = 0;
-
-                renderPreview(fixedData, headers, 0, addedCount, errorRowsList);
-                btnDownload.disabled = false;
-                btnProcess.disabled = false;
-                btnFixColumns.disabled = true;
-
-                if (errorRowsList.length > 0) {
-                    showToast(`✅ ${errorRowsList.length} linha(s) corrigidas, ${addedCount} célula(s) adicionadas`, 'success');
                 } else {
-                    showToast('✅ Nenhuma correção necessária!', 'success');
+                    showToast('✅ Estrutura já está correta!', 'success');
                 }
             }
 
@@ -947,7 +957,7 @@
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     try {
-                        const text = e.target.value || e.target.result;
+                        const text = e.target.result;
                         const parsed = parseCSV(text);
 
                         if (parsed.length === 0) {
@@ -955,31 +965,27 @@
                             return;
                         }
 
-                        // Detecta se a primeira linha são headers ou dados
                         headers = parsed[0] || [];
                         currentData = parsed;
-                        originalData = JSON.parse(JSON.stringify(parsed));
 
-                        // Mostra info
                         fileName.textContent = file.name;
                         fileSize.textContent = formatFileSize(file.size);
                         fileInfo.classList.add('show');
                         currentFileName = file.name;
 
-                        // Atualiza número esperado de colunas
+                        // Detecta número máximo de colunas
                         const maxCols = parsed.reduce((max, row) => Math.max(max, row.length), 0);
-                        expectedColumnsInput.value = maxCols;
+                        expectedColumnsInput.value = maxCols || 14;
 
                         // Reseta estados
-                        errorRowsList = [];
                         addedCount = 0;
-                        modificationCount = 0;
+                        removedCount = 0;
+                        fixedRowsList = [];
                         processedData = null;
                         btnDownload.disabled = true;
-                        btnProcess.disabled = false;
                         btnFixColumns.disabled = false;
 
-                        // Renderiza preview
+                        // Mostra preview original
                         renderPreview(parsed, headers, 0, 0, []);
 
                         showToast(`📄 "${file.name}" carregado com sucesso!`, 'success');
@@ -1028,14 +1034,12 @@
                 currentData = null;
                 processedData = null;
                 headers = [];
-                btnProcess.disabled = true;
                 btnFixColumns.disabled = true;
                 btnDownload.disabled = true;
                 showToast('Arquivo removido', 'success');
             });
 
-            btnProcess.addEventListener('click', processCleanup);
-            btnFixColumns.addEventListener('click', fixColumnsOnly);
+            btnFixColumns.addEventListener('click', fixStructureOnly);
 
             btnDownload.addEventListener('click', () => {
                 if (!processedData || processedData.length === 0) {
@@ -1043,19 +1047,14 @@
                     return;
                 }
 
-                const dataToExport = processedData.map(row => {
-                    // Remove propriedades internas
-                    return row.filter(cell => !(cell === '_modified' || typeof cell === 'object' && cell._modified !== undefined));
-                });
-
-                const csvContent = arrayToCSV(dataToExport, headers);
+                const csvContent = arrayToCSV(processedData);
 
                 const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
                 const link = document.createElement('a');
                 const url = URL.createObjectURL(blob);
                 link.setAttribute('href', url);
                 const baseName = currentFileName.replace(/\.[^.]+$/, '') || 'arquivo';
-                link.setAttribute('download', `${baseName}_corrigido.csv`);
+                link.setAttribute('download', `${baseName}_estrutura_corrigida.csv`);
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
@@ -1073,7 +1072,6 @@
                 currentData = null;
                 processedData = null;
                 headers = [];
-                btnProcess.disabled = true;
                 btnFixColumns.disabled = true;
                 btnDownload.disabled = true;
                 showToast('🧹 Tudo limpo!', 'success');
@@ -1082,26 +1080,23 @@
             document.querySelectorAll('input[name="trimType"]').forEach(radio => {
                 radio.addEventListener('change', () => {
                     if (currentData) {
-                        processCleanup();
+                        fixStructureOnly();
                     }
                 });
             });
 
             expectedColumnsInput.addEventListener('change', () => {
-                if (currentData) {
-                    const val = parseInt(expectedColumnsInput.value) || 14;
-                    if (val > 0) {
-                        // Re-processa com novo número de colunas
-                        fixColumnsOnly();
-                    }
+                const val = parseInt(expectedColumnsInput.value) || 14;
+                if (val > 0 && currentData) {
+                    targetCols = val;
+                    fixStructureOnly();
                 }
             });
 
-            // Previne drag global
             document.addEventListener('dragover', (e) => e.preventDefault());
             document.addEventListener('drop', (e) => e.preventDefault());
 
-            showToast('👆 Carregue seu arquivo CSV com problemas', 'success', 3000);
+            showToast('👆 Carregue seu CSV para corrigir a estrutura', 'success', 3000);
         });
     </script>
 
