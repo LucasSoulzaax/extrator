@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Limpeza de CSV - Remover Espaços</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 900px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        h1 {
+            color: #1a1a2e;
+            font-size: 28px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .upload-area {
+            border: 3px dashed #0f3460;
+            border-radius: 16px;
+            padding: 50px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: #f8f9fc;
+            position: relative;
+        }
+
+        .upload-area:hover {
+            border-color: #e94560;
+            background: #f0f1f7;
+        }
+
+        .upload-area.dragover {
+            border-color: #e94560;
+            background: #e8e9f5;
+            transform: scale(1.02);
+        }
+
+        .upload-area .icon {
+            font-size: 60px;
+            margin-bottom: 15px;
+        }
+
+        .upload-area p {
+            color: #555;
+            font-size: 16px;
+        }
+
+        .upload-area .highlight {
+            color: #0f3460;
+            font-weight: 600;
+        }
+
+        .upload-area input[type="file"] {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .file-info {
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            background: #e8f0fe;
+            padding: 12px 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+
+        .file-info.show {
+            display: flex;
+        }
+
+        .file-info .name {
+            font-weight: 600;
+            color: #0f3460;
+        }
+
+        .file-info .size {
+            color: #666;
+            font-size: 13px;
+        }
+
+        .btn-remove {
+            background: #e94560;
+            color: white;
+            border: none;
+            padding: 4px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .options {
+            display: flex;
+            gap: 30px;
+            margin: 25px 0;
+            flex-wrap: wrap;
+            background: #f8f9fc;
+            padding: 20px;
+            border-radius: 12px;
+        }
+
+        .options label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            color: #333;
+            cursor: pointer;
+        }
+
+        .options input[type="radio"] {
+            accent-color: #0f3460;
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .preview-area {
+            margin-top: 25px;
+            border: 1px solid #ddd;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .preview-header {
+            background: #f0f2f5;
+            padding: 12px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .preview-header span {
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .preview-header .count {
+            color: #666;
+            font-weight: 400;
+            font-size: 13px;
+        }
+
+        .preview-scroll {
+            max-height: 350px;
+            overflow: auto;
+            padding: 10px 0;
+        }
+
+        .preview-scroll table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        .preview-scroll th {
+            background: #f8f9fc;
+            color: #333;
+            font-weight: 600;
+            padding: 10px 14px;
+            text-align: left;
+            position: sticky;
+            top: 0;
+            border-bottom: 2px solid #ddd;
+            white-space: nowrap;
+        }
+
+        .preview-scroll td {
+            padding: 8px 14px;
+            border-bottom: 1px solid #eee;
+            max-width: 200px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .preview-scroll tr:hover td {
+            background: #f5f7fc;
+        }
+
+        .preview-scroll .cell-modified {
+            background: #e8f5e9 !important;
+        }
+
+        .preview-scroll .cell-modified td {
+            background: #e8f5e9;
+        }
+
+        .actions {
+            display: flex;
+            gap: 15px;
+            margin-top: 25px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: #0f3460;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #1a4a7a;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(15, 52, 96, 0.3);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-success {
+            background: #2e7d32;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #388e3c;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(46, 125, 50, 0.3);
+        }
+
+        .btn-success:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-outline {
+            background: transparent;
+            color: #0f3460;
+            border: 2px solid #0f3460;
+        }
+
+        .btn-outline:hover {
+            background: #0f3460;
+            color: white;
+        }
+
+        .stats {
+            display: flex;
+            gap: 30px;
+            margin-top: 15px;
+            padding: 15px 20px;
+            background: #f8f9fc;
+            border-radius: 10px;
+            flex-wrap: wrap;
+        }
+
+        .stats .item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            color: #555;
+        }
+
+        .stats .item strong {
+            color: #0f3460;
+            font-size: 18px;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: #333;
+            color: white;
+            padding: 15px 25px;
+            border-radius: 10px;
+            font-size: 14px;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.4s ease;
+            pointer-events: none;
+            box-shadow: 0 6px 24px rgba(0, 0, 0, 0.3);
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .toast.success {
+            background: #2e7d32;
+        }
+
+        .toast.error {
+            background: #c62828;
+        }
+
+        .badge {
+            display: inline-block;
+            background: #e94560;
+            color: white;
+            font-size: 11px;
+            padding: 2px 10px;
+            border-radius: 20px;
+            margin-left: 6px;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+            }
+
+            .options {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .actions {
+                flex-direction: column;
+            }
+
+            .btn {
+                justify-content: center;
+            }
+
+            .stats {
+                flex-direction: column;
+                gap: 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>🧹 Limpeza de CSV</h1>
+        <p class="subtitle">Remova espaços extras no início e fim de todas as células</p>
+
+        <!-- Upload -->
+        <div class="upload-area" id="uploadArea">
+            <div class="icon">📂</div>
+            <p>Arraste seu arquivo <span class="highlight">CSV</span> aqui ou clique para selecionar</p>
+            <p style="font-size: 13px; color: #999; margin-top: 8px;">Suporta arquivos .csv e .txt</p>
+            <input type="file" id="fileInput" accept=".csv,.txt">
+        </div>
+
+        <div class="file-info" id="fileInfo">
+            <span class="name" id="fileName">arquivo.csv</span>
+            <span class="size" id="fileSize">0 KB</span>
+            <button class="btn-remove" id="removeFile">✕</button>
+        </div>
+
+        <!-- Opções -->
+        <div class="options">
+            <label>
+                <input type="radio" name="trimType" value="trim" checked>
+                Remover espaços no início e fim
+                <span class="badge">recomendado</span>
+            </label>
+            <label>
+                <input type="radio" name="trimType" value="all">
+                Remover TODOS os espaços
+                <span class="badge">agressivo</span>
+            </label>
+            <label>
+                <input type="radio" name="trimType" value="none">
+                Apenas visualizar
+            </label>
+        </div>
+
+        <!-- Preview -->
+        <div class="preview-area" id="previewArea" style="display: none;">
+            <div class="preview-header">
+                <span>📊 Prévia do conteúdo</span>
+                <span class="count" id="rowCount">0 linhas</span>
+            </div>
+            <div class="preview-scroll" id="previewScroll">
+                <table>
+                    <thead id="tableHead"></thead>
+                    <tbody id="tableBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats" id="statsArea" style="display: none;">
+            <div class="item">📝 Total de células: <strong id="totalCells">0</strong></div>
+            <div class="item">✂️ Células modificadas: <strong id="modifiedCells">0</strong></div>
+            <div class="item">📊 Colunas: <strong id="totalColumns">0</strong></div>
+            <div class="item">📋 Linhas: <strong id="totalRows">0</strong></div>
+        </div>
+
+        <!-- Actions -->
+        <div class="actions">
+            <button class="btn btn-primary" id="btnProcess" disabled>
+                🔄 Processar Limpeza
+            </button>
+            <button class="btn btn-success" id="btnDownload" disabled>
+                ⬇️ Baixar CSV Limpo
+            </button>
+            <button class="btn btn-outline" id="btnClear">
+                🗑️ Limpar Tudo
+            </button>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Elementos
+            const fileInput = document.getElementById('fileInput');
+            const uploadArea = document.getElementById('uploadArea');
+            const fileInfo = document.getElementById('fileInfo');
+            const fileName = document.getElementById('fileName');
+            const fileSize = document.getElementById('fileSize');
+            const removeFile = document.getElementById('removeFile');
+            const previewArea = document.getElementById('previewArea');
+            const tableHead = document.getElementById('tableHead');
+            const tableBody = document.getElementById('tableBody');
+            const rowCount = document.getElementById('rowCount');
+            const statsArea = document.getElementById('statsArea');
+            const totalCells = document.getElementById('totalCells');
+            const modifiedCells = document.getElementById('modifiedCells');
+            const totalColumns = document.getElementById('totalColumns');
+            const totalRows = document.getElementById('totalRows');
+            const btnProcess = document.getElementById('btnProcess');
+            const btnDownload = document.getElementById('btnDownload');
+            const btnClear = document.getElementById('btnClear');
+            const toast = document.getElementById('toast');
+
+            let currentData = null; // Array de arrays
+            let originalData = null; // Para comparar modificações
+            let processedData = null;
+            let headers = [];
+            let currentFileName = '';
+            let modificationCount = 0;
+
+            // --- Funções auxiliares ---
+            function showToast(message, type = 'success', duration = 3000) {
+                toast.textContent = message;
+                toast.className = 'toast ' + type;
+                setTimeout(() => toast.classList.add('show'), 10);
+                clearTimeout(toast._timeout);
+                toast._timeout = setTimeout(() => {
+                    toast.classList.remove('show');
+                }, duration);
+            }
+
+            function formatFileSize(bytes) {
+                if (bytes < 1024) return bytes + ' B';
+                if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+                return (bytes / 1048576).toFixed(1) + ' MB';
+            }
+
+            function escapeHtml(str) {
+                if (str === null || str === undefined) return '';
+                const div = document.createElement('div');
+                div.textContent = String(str);
+                return div.innerHTML;
+            }
+
+            function getTrimFunction(type) {
+                if (type === 'trim') {
+                    return (val) => {
+                        if (typeof val !== 'string') return val;
+                        return val.trim();
+                    };
+                } else if (type === 'all') {
+                    return (val) => {
+                        if (typeof val !== 'string') return val;
+                        return val.replace(/\s/g, '');
+                    };
+                } else {
+                    return (val) => val;
+                }
+            }
+
+            // --- Processar CSV ---
+            function parseCSV(text) {
+                // Detecta separador: vírgula ou ponto e vírgula
+                const lines = text.split(/\r?\n/).filter(line => line.trim() !== '');
+                if (lines.length === 0) return [];
+
+                // Detecta separador
+                let separator = ',';
+                const firstLine = lines[0];
+                if (firstLine.includes(';') && !firstLine.includes(',')) {
+                    separator = ';';
+                } else if (firstLine.includes(';') && firstLine.includes(',')) {
+                    // Conta qual aparece mais
+                    const semicolonCount = (firstLine.match(/;/g) || []).length;
+                    const commaCount = (firstLine.match(/,/g) || []).length;
+                    separator = semicolonCount >= commaCount ? ';' : ',';
+                }
+
+                // Parse com suporte a aspas
+                function parseCSVLine(line, sep) {
+                    const result = [];
+                    let current = '';
+                    let inQuotes = false;
+                    for (let i = 0; i < line.length; i++) {
+                        const char = line[i];
+                        if (char === '"') {
+                            if (inQuotes && line[i + 1] === '"') {
+                                current += '"';
+                                i++;
+                            } else {
+                                inQuotes = !inQuotes;
+                            }
+                        } else if (char === sep && !inQuotes) {
+                            result.push(current.trim());
+                            current = '';
+                        } else {
+                            current += char;
+                        }
+                    }
+                    result.push(current.trim());
+                    return result;
+                }
+
+                const parsed = lines.map(line => parseCSVLine(line, separator));
+                return parsed;
+            }
+
+            function arrayToCSV(data, headers) {
+                const lines = [];
+                if (headers && headers.length > 0) {
+                    lines.push(headers.map(h => `"${String(h).replace(/"/g, '""')}"`).join(','));
+                }
+                data.forEach(row => {
+                    const rowData = row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',');
+                    lines.push(rowData);
+                });
+                return lines.join('\n');
+            }
+
+            // --- Renderizar preview ---
+            function renderPreview(data, headers, modCount = 0) {
+                if (!data || data.length === 0) {
+                    previewArea.style.display = 'none';
+                    statsArea.style.display = 'none';
+                    return;
+                }
+
+                previewArea.style.display = 'block';
+                statsArea.style.display = 'flex';
+
+                const displayHeaders = headers || data[0] || [];
+                const displayData = headers ? data : data.slice(1);
+
+                // Cabeçalho
+                tableHead.innerHTML = '';
+                const headRow = document.createElement('tr');
+                displayHeaders.forEach(h => {
+                    const th = document.createElement('th');
+                    th.textContent = h || 'Coluna ' + (headRow.children.length + 1);
+                    headRow.appendChild(th);
+                });
+                tableHead.appendChild(headRow);
+
+                // Corpo - mostra apenas primeiras 100 linhas
+                tableBody.innerHTML = '';
+                const maxRows = Math.min(displayData.length, 100);
+                for (let i = 0; i < maxRows; i++) {
+                    const tr = document.createElement('tr');
+                    const row = displayData[i] || [];
+                    const hasMod = row._modified || false;
+                    if (hasMod) tr.className = 'cell-modified';
+                    for (let j = 0; j < displayHeaders.length; j++) {
+                        const td = document.createElement('td');
+                        const val = row[j] !== undefined ? row[j] : '';
+                        td.textContent = typeof val === 'string' ? val : String(val);
+                        if (row._modified && row._modified === true) {
+                            td.style.background = '#e8f5e9';
+                        }
+                        tr.appendChild(td);
+                    }
+                    tableBody.appendChild(tr);
+                }
+
+                if (displayData.length > 100) {
+                    const tr = document.createElement('tr');
+                    const td = document.createElement('td');
+                    td.colSpan = displayHeaders.length || 1;
+                    td.textContent = `... e mais ${displayData.length - 100} linhas`;
+                    td.style.textAlign = 'center';
+                    td.style.color = '#999';
+                    td.style.padding = '12px';
+                    tr.appendChild(td);
+                    tableBody.appendChild(tr);
+                }
+
+                rowCount.textContent = displayData.length + ' linhas' + (displayData.length > 100 ? ' (mostrando 100)' : '');
+
+                // Stats
+                totalCells.textContent = displayData.length * (displayHeaders.length || 0);
+                modifiedCells.textContent = modCount;
+                totalColumns.textContent = displayHeaders.length || 0;
+                totalRows.textContent = displayData.length;
+            }
+
+            // --- Processar limpeza ---
+            function processCleanup() {
+                if (!currentData || currentData.length === 0) {
+                    showToast('Nenhum dado para processar', 'error');
+                    return;
+                }
+
+                const trimType = document.querySelector('input[name="trimType"]:checked').value;
+                const trimFn = getTrimFunction(trimType);
+
+                const dataToProcess = currentData;
+                const hasHeaders = headers.length > 0;
+                const dataRows = hasHeaders ? dataToProcess.slice(1) : dataToProcess;
+                const headerRow = hasHeaders ? dataToProcess[0] : [];
+
+                let modCount = 0;
+                const processedRows = dataRows.map((row, rowIdx) => {
+                    const newRow = row.map((cell, colIdx) => {
+                        const original = cell;
+                        const trimmed = trimFn(cell);
+                        if (original !== trimmed && typeof original === 'string') {
+                            modCount++;
+                        }
+                        return trimmed;
+                    });
+                    // Marca se houve modificação para destacar no preview
+                    const hasMod = newRow.some((val, idx) => val !== row[idx]);
+                    newRow._modified = hasMod;
+                    return newRow;
+                });
+
+                modificationCount = modCount;
+
+                // Monta dados finais
+                const finalData = hasHeaders ? [headerRow, ...processedRows] : processedRows;
+                processedData = finalData;
+
+                // Renderiza preview com modificações destacadas
+                const previewData = hasHeaders ? [headerRow, ...processedRows] : processedRows;
+                renderPreview(previewData, headers, modCount);
+
+                btnDownload.disabled = false;
+                btnProcess.disabled = true;
+
+                if (modCount === 0) {
+                    showToast('✅ Nenhuma célula foi modificada!', 'success');
+                } else {
+                    showToast(`✅ ${modCount} célula(s) modificada(s)!`, 'success');
+                }
+            }
+
+            // --- Carregar arquivo ---
+            function loadFile(file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const text = e.target.result;
+                        const parsed = parseCSV(text);
+
+                        if (parsed.length === 0) {
+                            showToast('Arquivo vazio ou inválido', 'error');
+                            return;
+                        }
+
+                        // Define headers
+                        headers = parsed[0] || [];
+                        currentData = parsed;
+                        originalData = JSON.parse(JSON.stringify(parsed));
+
+                        // Mostra info
+                        fileName.textContent = file.name;
+                        fileSize.textContent = formatFileSize(file.size);
+                        fileInfo.classList.add('show');
+                        currentFileName = file.name;
+
+                        // Renderiza preview
+                        renderPreview(parsed, headers, 0);
+
+                        btnProcess.disabled = false;
+                        btnDownload.disabled = true;
+                        processedData = null;
+
+                        showToast(`📄 Arquivo "${file.name}" carregado com sucesso!`, 'success');
+                    } catch (err) {
+                        showToast('Erro ao processar o arquivo: ' + err.message, 'error');
+                        console.error(err);
+                    }
+                };
+                reader.onerror = function() {
+                    showToast('Erro ao ler o arquivo', 'error');
+                };
+                reader.readAsText(file, 'UTF-8');
+            }
+
+            // --- Event listeners ---
+
+            // Upload por clique
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    loadFile(e.target.files[0]);
+                }
+            });
+
+            // Upload por arrastar
+            uploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadArea.classList.add('dragover');
+            });
+
+            uploadArea.addEventListener('dragleave', () => {
+                uploadArea.classList.remove('dragover');
+            });
+
+            uploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadArea.classList.remove('dragover');
+                if (e.dataTransfer.files.length > 0) {
+                    loadFile(e.dataTransfer.files[0]);
+                }
+            });
+
+            // Remover arquivo
+            removeFile.addEventListener('click', () => {
+                fileInput.value = '';
+                fileInfo.classList.remove('show');
+                previewArea.style.display = 'none';
+                statsArea.style.display = 'none';
+                currentData = null;
+                processedData = null;
+                headers = [];
+                btnProcess.disabled = true;
+                btnDownload.disabled = true;
+                showToast('Arquivo removido', 'success');
+            });
+
+            // Processar
+            btnProcess.addEventListener('click', processCleanup);
+
+            // Download
+            btnDownload.addEventListener('click', () => {
+                if (!processedData || processedData.length === 0) {
+                    showToast('Nenhum dado processado para baixar', 'error');
+                    return;
+                }
+
+                const csvContent = arrayToCSV(
+                    processedData.slice(1), // remove headers internos
+                    headers
+                );
+
+                const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                const url = URL.createObjectURL(blob);
+                link.setAttribute('href', url);
+                const baseName = currentFileName.replace(/\.[^.]+$/, '') || 'arquivo';
+                link.setAttribute('download', `${baseName}_limpo.csv`);
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+
+                showToast('✅ Arquivo baixado com sucesso!', 'success');
+            });
+
+            // Limpar tudo
+            btnClear.addEventListener('click', () => {
+                fileInput.value = '';
+                fileInfo.classList.remove('show');
+                previewArea.style.display = 'none';
+                statsArea.style.display = 'none';
+                currentData = null;
+                processedData = null;
+                headers = [];
+                btnProcess.disabled = true;
+                btnDownload.disabled = true;
+                showToast('🧹 Tudo limpo!', 'success');
+            });
+
+            // Mudança de opção de trim
+            document.querySelectorAll('input[name="trimType"]').forEach(radio => {
+                radio.addEventListener('change', () => {
+                    if (currentData) {
+                        // Se já tiver dados, re-processa automaticamente
+                        processCleanup();
+                    }
+                });
+            });
+
+            // --- Inicialização ---
+            // Exemplo de drag global
+            document.addEventListener('dragover', (e) => e.preventDefault());
+            document.addEventListener('drop', (e) => e.preventDefault());
+
+            showToast('👆 Carregue um arquivo CSV para começar', 'success', 2500);
+        });
+    </script>
+
+</body>
+</html>
